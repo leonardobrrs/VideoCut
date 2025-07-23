@@ -47,7 +47,7 @@ Siga os passos abaixo para executar o projeto localmente.
 
 1.  **Clone o repositório:**
     ```bash
-    git clone [https://github.com/leonardobrrs/VideoCut]
+    git clone https://github.com/leonardobrrs/VideoCut
     cd VideoCut
     ```
     2.  **Crie e ative um ambiente virtual:**
