@@ -47,8 +47,8 @@ Siga os passos abaixo para executar o projeto localmente.
 
 1.  **Clone o repositório:**
     ```bash
-    git clone [https://github.com/seu-usuario/seu-repositorio.git](https://github.com/seu-usuario/seu-repositorio.git)
-    cd seu-repositorio
+    git clone [https://github.com/leonardobrrs/VideoCut]
+    cd VideoCut
     ```
     2.  **Crie e ative um ambiente virtual:**
     ```bash
@@ -102,7 +102,7 @@ Este projeto está licenciado sob a Licença MIT. Veja o arquivo [LICENSE](LICEN
 
 ## 👤 Autor
 
-Feito com ❤️ por **[Seu Nome]**
+Feito com ❤️ por **Leonardo**
 
 * **GitHub:** [@leonardobrrs](https://github.com/leonardobrrs)
 * **LinkedIn:** [Leonardo Barbosa Barros](https://www.linkedin.com/in/leonardobrrs/)
