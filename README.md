@@ -7,7 +7,7 @@
 
 Uma aplicação web simples construída com Python e Flask que permite aos usuários fazer o upload de um vídeo, definir um intervalo de tempo e cortar o clipe correspondente para download.
 
-<img src="https://cdn-icons-gif.flaticon.com/6172/6172554.gif" width="300">
+<img src="https://cdn-icons-gif.flaticon.com/6172/6172554.gif" width="100">
 
 ## ✨ Funcionalidades
 
