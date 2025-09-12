@@ -56,7 +56,7 @@ Siga os passos abaixo para executar o projeto localmente.
     python -m venv venv
 
     # Ativar no Windows
-    .\venv\Scripts\activate
+    .\.venv\Scripts\Activate.ps1
 
     # Ativar no macOS/Linux
     source venv/bin/activate
