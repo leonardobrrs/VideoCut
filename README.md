@@ -73,7 +73,7 @@ Siga os passos abaixo para executar o projeto localmente.
 
 1.  Com o ambiente virtual ativado, inicie a aplicação Flask:
     ```bash
-    python app.py
+    python run.py
     ```
 
 2.  Abra seu navegador e acesse:
