@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <title>Seu vídeo está pronto!</title>
+</head>
+<body>
+    <h1>Processamento Concluído!</h1>
+    <p>Seu vídeo foi cortado com sucesso.</p>
+    <a href="{{ url_for('download_file', filename=filename) }}">
+        <button>Baixar Vídeo Cortado</button>
+    </a>
+    <br><br>
+    <a href="/">Cortar outro vídeo</a>
+</body>
+</html>

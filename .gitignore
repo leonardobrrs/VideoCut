@@ -1,7 +1,5 @@
 /.venv/
-/.idea/misc.xml
-/.idea/VideoCut.iml
-/.idea/vcs.xml
-/.idea/inspectionProfiles/profiles_settings.xml
-/.idea/modules.xml
-/.idea/.gitignore
+/__pycache__/
+/app/__pycache__/
+/uploads/
+/outputs/
