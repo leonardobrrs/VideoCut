@@ -23,14 +23,35 @@
             <input type="file" name="video" id="video" required>
         </p>
         <p>
-            <label for="start">Tempo Inicial (segundos):</label><br>
-            <input type="number" name="start_time" id="start" step="0.1" required>
+            <label for="start">Tempo Inicial:</label><br>
+            <input type="text" name="start_time" id="start" placeholder="hh:mm:ss" required>
         </p>
         <p>
-            <label for="end">Tempo Final (segundos):</label><br>
-            <input type="number" name="end_time" id="end" step="0.1" required>
+            <label for="end">Tempo Final:</label><br>
+            <input type="text" name="end_time" id="end" placeholder="hh:mm:ss" required>
         </p>
         <button type="submit">Cortar Vídeo</button>
     </form>
+
+    <script>
+      function formatTimeInput(inputElement) {
+          let value = inputElement.value.replace(/\D/g, '');
+
+          if (value.length > 2) {
+              value = value.slice(0, -2) + ':' + value.slice(-2);
+          }
+          if (value.length > 5) {
+              value = value.slice(0, -5) + ':' + value.slice(-5);
+          }
+
+          inputElement.value = value;
+      }
+      const startTimeInput = document.getElementById('start');
+      const endTimeInput = document.getElementById('end');
+
+      startTimeInput.addEventListener('input', () => formatTimeInput(startTimeInput));
+      endTimeInput.addEventListener('input', () => formatTimeInput(endTimeInput));
+
+    </script>
 </body>
 </html>
