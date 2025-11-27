@@ -3,16 +3,30 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Cortador de Vídeo - Python</title>
+    <title>Video Cut</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/nouislider@14.6.3/distribute/nouislider.min.css" rel="stylesheet">
+    
     <style>
         body { background-color: #f8f9fa; }
         .card { box-shadow: 0 4px 6px rgba(0,0,0,0.1); border: none; }
-        .header-title { color: #2c3e50; font-weight: 700; }
         
-        /* Overlay de Carregamento */
+        #videoPreviewContainer {
+            display: none; 
+            background: #000;
+            border-radius: 8px;
+            overflow: hidden;
+            margin-bottom: 20px;
+            padding-bottom: 15px; 
+        }
+        video { width: 100%; max-height: 400px; display: block; margin-bottom: 15px; }
+
+        #timeSlider { margin: 0 20px; height: 10px; }
+        .noUi-connect { background: #0d6efd; }
+        .noUi-handle { cursor: col-resize; }
+
         #loadingOverlay {
-            display: none; /* Começa oculto */
+            display: none;
             position: fixed;
             top: 0; left: 0; width: 100%; height: 100%;
             background: rgba(255, 255, 255, 0.9);
@@ -27,38 +41,24 @@
 
 <div id="loadingOverlay">
     <div class="text-center" style="width: 80%; max-width: 500px;">
-        <h4 class="mb-3 text-secondary">A processar o seu vídeo...</h4>
-        
-        <div class="progress" style="height: 25px; box-shadow: 0 2px 5px rgba(0,0,0,0.1);">
-            <div id="progressBar" 
-                 class="progress-bar progress-bar-striped progress-bar-animated bg-primary" 
-                 role="progressbar" 
-                 style="width: 0%;" 
-                 aria-valuenow="0" aria-valuemin="0" aria-valuemax="100">
-                0%
-            </div>
+        <h4 class="mb-3 text-secondary">Processando...</h4>
+        <div class="progress" style="height: 25px;">
+            <div id="progressBar" class="progress-bar progress-bar-striped progress-bar-animated bg-primary" role="progressbar" style="width: 0%;">0%</div>
         </div>
-        
-        <p class="mt-2 text-muted small">Por favor, não feche a janela.</p>
+        <p class="mt-2 text-muted small">Isso pode levar alguns segundos (ou minutos para GIFs)...</p>
     </div>
 </div>
 
 <div class="container py-5">
     <div class="row justify-content-center">
-        <div class="col-md-8 col-lg-6">
-            
-            <div class="text-center mb-4">
-                <h1 class="header-title">✂️ Cortador de Vídeo</h1>
-                <p class="text-muted">Simples, rápido e eficiente.</p>
-            </div>
+        <div class="col-md-8 col-lg-7">
+            <div class="text-center mb-4"><h1>🎬 Video Cut</h1></div>
 
             {% with messages = get_flashed_messages() %}
                 {% if messages %}
                     {% for message in messages %}
-                        <div class="alert alert-danger alert-dismissible fade show" role="alert">
-                            {{ message }}
-                            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-                        </div>
+                        <div class="alert alert-warning alert-dismissible fade show">{{ message }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button></div>
                     {% endfor %}
                 {% endif %}
             {% endwith %}
@@ -66,148 +66,229 @@
             <div class="card p-4">
                 <form action="/process" method="POST" enctype="multipart/form-data" id="cutForm">
                     
-                    <div class="mb-4">
-                        <label for="video" class="form-label fw-bold">1. Selecione o Vídeo</label>
-                        <input class="form-control" type="file" name="video" id="video" accept="video/*" required>
-                        <div class="form-text" id="fileNameDisplay">Nenhum arquivo selecionado</div>
+                    <div id="videoPreviewContainer" class="mb-3 bg-dark">
+                        <video id="videoPlayer" controls></video>
+                        <div id="timeSlider"></div>
+                        <div class="text-center text-white small mt-2">Arraste para definir Início e Fim</div>
                     </div>
 
-                    <div class="row g-3 mb-4">
-                        
+                    <div class="mb-3">
+                        <label for="video" class="form-label fw-bold">Selecione o Vídeo</label>
+                        <input class="form-control" type="file" name="video" id="video" accept="video/*" required>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-12 mb-3">
+                            <label class="form-label fw-bold">Formato de Saída</label>
+                            <select class="form-select" name="format" id="formatSelect">
+                                <option value="mp4" selected>MP4 (Vídeo Padrão)</option>
+                                <option value="mp3">MP3 (Apenas Áudio)</option>
+                                <option value="gif">GIF Animado (Sem Áudio)</option>
+                            </select>
+                            <div class="form-text">GIFs podem demorar mais para processar.</div>
+                         </div>
+                    </div>
+
+                    <div id="fullProcessContainer" class="form-check mb-3 p-3 border rounded bg-light" style="display: none;">
+                        <input class="form-check-input" type="checkbox" name="process_full" id="processFull">
+                        <label class="form-check-label" for="processFull"><strong>Extrair Áudio Completo</strong></label>
+                    </div>
+
+                    <div id="muteContainer" class="form-check mb-3 p-3 border rounded bg-light">
+                        <input class="form-check-input" type="checkbox" name="remove_audio" id="removeAudio">
+                        <label class="form-check-label" for="removeAudio"><strong>Remover Áudio</strong> (Mutar Vídeo)</label>
+                    </div>
+
+                    <div id="resolutionContainer" class="mb-3">
+                        <label class="form-label fw-bold">Resolução (Qualidade)</label>
+                        <select class="form-select" name="resolution">
+                            <option value="original" selected>Manter Original</option>
+                            <option value="1080">1080p (Full HD)</option>
+                            <option value="720">720p (HD - Bom para YouTube)</option>
+                            <option value="480">480p (Leve - Bom para WhatsApp)</option>
+                            <option value="360">360p (Muito Leve)</option>
+                        </select>
+                    </div>
+
+                    <div class="row g-2 mb-4" id="timeInputsArea">
                         <div class="col-md-6">
                             <label class="form-label fw-bold">Início</label>
                             <div class="input-group">
-                                <input type="number" class="form-control" name="start_h" id="start_h" placeholder="0" min="0" aria-label="Horas">
-                                <span class="input-group-text">h</span>
-                                <input type="number" class="form-control" name="start_m" id="start_m" placeholder="0" min="0" aria-label="Minutos">
-                                <span class="input-group-text">m</span>
-                                <input type="number" class="form-control" name="start_s" id="start_s" placeholder="0" min="0" aria-label="Segundos">
-                                <span class="input-group-text">s</span>
+                                <input type="number" class="form-control" name="start_h" id="start_h" value="0" min="0"><span class="input-group-text">h</span>
+                                <input type="number" class="form-control" name="start_m" id="start_m" value="0" min="0"><span class="input-group-text">m</span>
+                                <input type="number" class="form-control" name="start_s" id="start_s" value="0" min="0"><span class="input-group-text">s</span>
                             </div>
                         </div>
-
                         <div class="col-md-6">
                             <label class="form-label fw-bold">Fim</label>
                             <div class="input-group">
-                                <input type="number" class="form-control" name="end_h" id="end_h" placeholder="0" min="0" aria-label="Horas">
-                                <span class="input-group-text">h</span>
-                                <input type="number" class="form-control" name="end_m" id="end_m" placeholder="0" min="0" aria-label="Minutos">
-                                <span class="input-group-text">m</span>
-                                <input type="number" class="form-control" name="end_s" id="end_s" placeholder="0" min="0" aria-label="Segundos">
-                                <span class="input-group-text">s</span>
+                                <input type="number" class="form-control" name="end_h" id="end_h" value="0" min="0"><span class="input-group-text">h</span>
+                                <input type="number" class="form-control" name="end_m" id="end_m" value="0" min="0"><span class="input-group-text">m</span>
+                                <input type="number" class="form-control" name="end_s" id="end_s" value="0" min="0"><span class="input-group-text">s</span>
                             </div>
                         </div>
-
                     </div>
 
                     <div class="d-grid">
-                        <button type="submit" class="btn btn-primary btn-lg">
-                            ✂️ Cortar Vídeo Agora
-                        </button>
+                        <button type="submit" class="btn btn-primary btn-lg">Processar Vídeo</button>
                     </div>
                 </form>
             </div>
-
-            <footer class="mt-5 text-center text-muted small">
-                &copy; 2025 Video Cut
-            </footer>
-
+            <footer class="mt-5 text-center text-muted small">&copy; 2025 Video Cut</footer>
         </div>
     </div>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/nouislider@14.6.3/distribute/nouislider.min.js"></script>
 
 <script>
     document.addEventListener("DOMContentLoaded", function() {
-        
-        // --- 1. Exibir Nome do Arquivo Selecionado ---
         const videoInput = document.getElementById('video');
-        const fileNameDisplay = document.getElementById('fileNameDisplay');
+        const videoContainer = document.getElementById('videoPreviewContainer');
+        const videoPlayer = document.getElementById('videoPlayer');
+        const sliderElement = document.getElementById('timeSlider');
+        const s_h = document.getElementById('start_h');
+        const s_m = document.getElementById('start_m');
+        const s_s = document.getElementById('start_s');
+        const e_h = document.getElementById('end_h');
+        const e_m = document.getElementById('end_m');
+        const e_s = document.getElementById('end_s');
+        const allTimeInputs = [s_h, s_m, s_s, e_h, e_m, e_s];
+        let slider = null;
+
+        function secondsToHMS(totalSeconds) {
+            const h = Math.floor(totalSeconds / 3600);
+            const m = Math.floor((totalSeconds % 3600) / 60);
+            const s = Math.floor(totalSeconds % 60);
+            return { h, m, s };
+        }
+        function inputsToSeconds() {
+            const start = (parseInt(s_h.value)||0)*3600 + (parseInt(s_m.value)||0)*60 + (parseInt(s_s.value)||0);
+            const end = (parseInt(e_h.value)||0)*3600 + (parseInt(e_m.value)||0)*60 + (parseInt(e_s.value)||0);
+            return [start, end];
+        }
+        function updateInputs(startSec, endSec) {
+            const start = secondsToHMS(startSec);
+            const end = secondsToHMS(endSec);
+            s_h.value = start.h; s_m.value = start.m; s_s.value = start.s;
+            e_h.value = end.h; e_m.value = end.m; e_s.value = end.s;
+        }
 
         if (videoInput) {
-            videoInput.addEventListener('change', function() {
-                if (this.files && this.files.length > 0) {
-                    fileNameDisplay.textContent = "Arquivo: " + this.files[0].name;
-                    fileNameDisplay.classList.add('text-success');
-                    fileNameDisplay.classList.remove('text-muted');
+            videoInput.addEventListener('change', function(event) {
+                const file = event.target.files[0];
+                if (file) {
+                    const fileURL = URL.createObjectURL(file);
+                    videoPlayer.src = fileURL;
+                    videoContainer.style.display = 'block';
+                    videoPlayer.onloadedmetadata = function() {
+                        const duration = videoPlayer.duration;
+                        if (slider) slider.destroy();
+                        noUiSlider.create(sliderElement, {
+                            start: [0, duration], connect: true, range: { 'min': 0, 'max': duration }, step: 1
+                        });
+                        slider = sliderElement.noUiSlider;
+                        updateInputs(0, duration);
+                        slider.on('update', function(values, handle) {
+                            const val = parseFloat(values[handle]);
+                            const currentVals = slider.get().map(parseFloat);
+                            updateInputs(currentVals[0], currentVals[1]);
+                            videoPlayer.currentTime = val;
+                        });
+                    };
                 } else {
-                    fileNameDisplay.textContent = "Nenhum arquivo selecionado";
-                    fileNameDisplay.classList.remove('text-success');
-                    fileNameDisplay.classList.add('text-muted');
+                    videoContainer.style.display = 'none';
+                    videoPlayer.src = '';
                 }
             });
         }
-
-        // --- 2. Barra de Progresso ---
-        const form = document.getElementById('cutForm');
-        const loadingOverlay = document.getElementById('loadingOverlay');
-        const progressBar = document.getElementById('progressBar');
-
-        if (form) {
-            form.addEventListener('submit', function(event) {
-                // Verifica se o formulário é válido (se tem vídeo selecionado)
-                if (form.checkValidity()) {
-                    loadingOverlay.style.display = 'flex';
-                    
-                    // Inicia a animação da barra
-                    let width = 0;
-                    const interval = setInterval(function() {
-                        if (width >= 90) {
-                            clearInterval(interval); // Para no 90%
-                        } else {
-                            width++; 
-                            progressBar.style.width = width + '%';
-                            progressBar.textContent = width + '%';
-                        }
-                    }, 50); // Velocidade da barra
+        allTimeInputs.forEach(input => {
+            input.addEventListener('change', function() {
+                if (slider) {
+                    const [start, end] = inputsToSeconds();
+                    slider.set([start, end]);
                 }
             });
-        }
+        });
 
-            // Função para tratar o "transbordo" de tempo (Ex: 65s -> 1m 5s)
-        function setupTimeOverflow(hoursId, minutesId, secondsId) {
-            const hInput = document.getElementById(hoursId);
-            const mInput = document.getElementById(minutesId);
-            const sInput = document.getElementById(secondsId);
-
-            function updateValues() {
-                // Pega os valores atuais (ou 0 se estiver vazio)
-                let s = parseInt(sInput.value) || 0;
-                let m = parseInt(mInput.value) || 0;
-                let h = parseInt(hInput.value) || 0;
-
-                // 1. Logica de Segundos para Minutos
-                if (s >= 60) {
-                    const extraMinutes = Math.floor(s / 60); // Ex: 130/60 = 2
-                    s = s % 60;                              // Ex: 130%60 = 10
-                    m += extraMinutes;                       // Soma aos minutos
-                }
-
-                // 2. Logica de Minutos para Horas
-                if (m >= 60) {
-                    const extraHours = Math.floor(m / 60);
-                    m = m % 60;
-                    h += extraHours;
-                }
-
-                // Atualiza os campos visualmente
-                sInput.value = s;
-                mInput.value = m;
-                hInput.value = h;
+        function setupTimeOverflow(hId, mId, sId) {
+            const h = document.getElementById(hId);
+            const m = document.getElementById(mId);
+            const s = document.getElementById(sId);
+            function update() {
+                let sVal = parseInt(s.value) || 0;
+                let mVal = parseInt(m.value) || 0;
+                let hVal = parseInt(h.value) || 0;
+                if (sVal >= 60) { mVal += Math.floor(sVal/60); sVal %= 60; }
+                if (mVal >= 60) { hVal += Math.floor(mVal/60); mVal %= 60; }
+                s.value = sVal; m.value = mVal; h.value = hVal;
+                if(slider) { const [start, end] = inputsToSeconds(); slider.set([start, end]); }
             }
-
-            // Adiciona o evento 'change' (dispara quando o usuário sai do campo ou aperta Enter)
-            // Usamos 'change' e não 'input' para não atrapalhar enquanto a pessoa digita
-            sInput.addEventListener('change', updateValues);
-            mInput.addEventListener('change', updateValues);
+            s.addEventListener('change', update);
+            m.addEventListener('change', update);
         }
-
-        // Ativa a função para os dois grupos de tempo
         setupTimeOverflow('start_h', 'start_m', 'start_s');
         setupTimeOverflow('end_h', 'end_m', 'end_s');
-        });
-</script>
 
+        const form = document.getElementById('cutForm');
+        const overlay = document.getElementById('loadingOverlay');
+        const bar = document.getElementById('progressBar');
+        if(form){
+            form.addEventListener('submit', function(){
+                if(form.checkValidity()){
+                    overlay.style.display = 'flex';
+                    let w = 0;
+                    // AQUI ESTÁ A MUDANÇA: 250ms (mais lento)
+                    setInterval(()=>{ 
+                        if(w<90){ 
+                            w++; 
+                            bar.style.width=w+'%'; 
+                            bar.innerText=w+'%'; 
+                        } 
+                    }, 250); 
+                }
+            });
+        }
+
+        const checkFull = document.getElementById('processFull');
+        const fullContainer = document.getElementById('fullProcessContainer');
+        const timeArea = document.getElementById('timeInputsArea');
+        const formatSelect = document.getElementById('formatSelect');
+        const muteContainer = document.getElementById('muteContainer');
+        const resContainer = document.getElementById('resolutionContainer');
+
+        function toggleTimeInputs() {
+            if(checkFull.checked){
+                timeArea.style.opacity = '0.5'; timeArea.style.pointerEvents = 'none'; 
+                if(sliderElement) sliderElement.setAttribute('disabled', true);
+            } else {
+                timeArea.style.opacity = '1'; timeArea.style.pointerEvents = 'auto';
+                if(sliderElement) sliderElement.removeAttribute('disabled');
+            }
+        }
+        function toggleFormatOptions() {
+            if (formatSelect.value === 'mp3') {
+                fullContainer.style.display = 'block';
+                if(muteContainer) muteContainer.style.display = 'none';
+                if(resContainer) resContainer.style.display = 'none';
+            } else if (formatSelect.value === 'gif') {
+                fullContainer.style.display = 'none';
+                if(muteContainer) muteContainer.style.display = 'none';
+                if(resContainer) resContainer.style.display = 'none';
+            } else {
+                fullContainer.style.display = 'none';
+                if(muteContainer) muteContainer.style.display = 'block';
+                if(resContainer) resContainer.style.display = 'block';
+                if (checkFull.checked) { checkFull.checked = false; toggleTimeInputs(); }
+            }
+        }
+        if(checkFull && timeArea) checkFull.addEventListener('change', toggleTimeInputs);
+        if (formatSelect && fullContainer) {
+            formatSelect.addEventListener('change', toggleFormatOptions);
+            toggleFormatOptions(); 
+        }
+    });
+</script>
 </body>
 </html>

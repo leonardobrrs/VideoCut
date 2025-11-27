@@ -23,19 +23,47 @@
                 </div>
                 
                 <h2 class="mb-3">Sucesso!</h2>
-                <p class="text-muted mb-4">Seu vídeo foi cortado e está pronto para download.</p>
 
+                {% if format == 'mp4' %}
+                    <div class="mb-4 bg-black rounded overflow-hidden">
+                        <video controls style="width: 100%; max-height: 300px;">
+                            <source src="{{ url_for('get_file', filename=filename) }}" type="video/mp4">
+                            Seu navegador não suporta o vídeo.
+                        </video>
+                    </div>
+                {% elif format == 'gif' %}
+                    <div class="mb-4 text-center">
+                        <img src="{{ url_for('get_file', filename=filename) }}" class="img-fluid rounded" style="max-height: 300px;">
+                    </div>
+                {% elif format == 'mp3' %}
+                    <div class="mb-4 bg-light p-3 rounded">
+                        <audio controls style="width: 100%;">
+                            <source src="{{ url_for('get_file', filename=filename) }}" type="audio/mpeg">
+                        </audio>
+                    </div>
+                {% endif %}
+                
                 <div class="alert alert-light border mb-4">
                     <strong>Arquivo:</strong> {{ filename }}
                 </div>
 
                 <div class="d-grid gap-2">
                     <a href="{{ url_for('download_file', filename=filename) }}" class="btn btn-success btn-lg">
-                        ⬇️ Baixar Vídeo Cortado
+                        {% if format == 'mp3' %}
+                            🎵 Baixar Áudio (MP3)
+                        {% elif format == 'gif' %}
+                            🖼️ Baixar GIF
+                        {% else %}
+                            ⬇️ Baixar Vídeo (MP4)
+                        {% endif %}
                     </a>
                     
                     <a href="{{ url_for('index') }}" class="btn btn-outline-secondary">
-                        ✂️ Cortar Outro Vídeo
+                        {% if format == 'mp3' %}
+                            ✂️ Extrair outro áudio
+                        {% else %}
+                            ✂️ Cortar outro vídeo
+                        {% endif %}
                     </a>
                 </div>
             </div>
